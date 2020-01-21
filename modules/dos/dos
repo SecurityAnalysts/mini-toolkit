@@ -1,0 +1,76 @@
+#!/bin/bash
+clear
+while :
+do
+cat tools/banner
+echo ""
+echo "                         By LockedByte "
+echo "---------------------------------------"
+echo ""
+echo "  1.- Anti-DDoS - Block Attacker IP Address"
+echo "  2.- Anti-DDoS - Redirect Traffic to Attacker IP Address"
+echo "  3.- Honeypot Control"
+echo "  4.- Setup Boot Start"
+echo ""
+echo "  99.- Exit"
+echo "--------------------------------------"
+echo -n "Select an option: "
+read op
+case $op in
+1) echo "[*] Selected: Anti-DDoS - Block Attacker IP Address";
+sh a.sh & sh b.sh
+;;
+2) echo "[*] Selected: Anti-DDoS - Redirect Traffic to Attacker IP Address";
+sh c.sh & sh d.sh
+;;
+3) echo "[*] Selected: Honeypot Control";
+clear
+while :
+do
+echo ""
+echo ""
+echo "--------------------------------------"
+echo ""
+echo "  1.- View Attacker IP Address"
+echo "  2.- View Logs"
+echo ""
+echo "  99.- Exit"
+echo "--------------------------------------"
+echo -n "Select an option: "
+read op1
+case $op1 in
+1) echo "[*] Selected: View Attacker IP Address";
+cat tools/detector/attackers.txt
+;;
+2) echo "[*] Selected: View Logs";
+cat tools/analyzer/ddos.log
+;;
+99) echo "[*] Exiting...";
+exit 1;;
+*) echo "[!] $op1 is not a valid option.";
+echo "Press enter to continue...";
+read foo;;
+esac
+done
+;;
+4) echo "[*] Selected: Setup Boot Starting";
+echo "chmod 777 setup.sh
+echo '#!/bin/sh 
+      cd /etc/ddos2track/tools/detector
+      sh detector.sh
+      exit' > ddos2track.sh
+cp ddos2track.sh /etc/init.d/ddos2track.sh
+rm ddos2track.sh
+chmod 777 /etc/init.d/ddos2track.sh
+ln -s /etc/init.d/ddos2track.sh /etc/rc2.d/S88ddos2track" > setup.sh
+echo "[+] Boot Starting Installed Successfully!"
+sh setup.sh
+rm setup.sh
+;;
+99) echo "[*] Exiting...";
+exit 1;;
+*) echo "[!] $op is not a valid option.";
+echo "Press enter to continue...";
+read foo;;
+esac
+done

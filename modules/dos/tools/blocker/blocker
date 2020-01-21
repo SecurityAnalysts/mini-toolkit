@@ -1,0 +1,219 @@
+#!/bin/bash
+
+
+
+    BANNED_IPS="attackers.txt"
+    LOCK=".lock"
+
+    
+    redirectA() {
+            if [ -f ${LOCK} ]
+            then
+                    if [ $# -eq 0 ]
+                    then
+                            echo "[!] You must enter an IP Address"
+                    else
+                            ip=$2
+                            exists=false
+                            for i in `cat $BANNED_IPS`; do
+                                    if [ $i = $ip ]
+                                    then
+                                            exists=true
+                                    fi
+                            done
+
+                            if [ $exists = false ]
+                            then
+                                         iptables -t nat -I PREROUTING -s $ip -p tcp --dport 80 -j REDIRECT --to-destination $ip
+                                         iptables -t nat -I OUTPUT -s $ip -p tcp -o lo --dport 80 -j REDIRECT --to-destination $ip
+                                    echo "[+] IP ${ip} redirected"
+                            else
+                                    echo "[!] IP ${ip} already in the list"
+                            fi
+                    fi
+            else
+                    echo "[!] Blocker is not running"
+        fi
+    }
+
+    redirectS() {
+            if [ -f ${LOCK} ]
+            then
+                    if [ $# -eq 0 ]
+                    then
+                            echo "[!] You must enter an IP Address"
+                    else
+                            ip=$2
+                            exists=false
+                            for i in `cat $BANNED_IPS`; do
+                                    if [ $i = $ip ]
+                                    then
+                                            exists=true
+                                    fi
+                            done
+
+                            if [ $exists = false ]
+                            then
+                                 echo "iptables -t nat -I PREROUTING -s $ip -p tcp --dport 80 -j REDIRECT --to-ports 8089 && iptables -t nat -I OUTPUT -s $ip -p tcp -o lo --dport 80 -j REDIRECT --to-ports 8089" 
+                                   echo "[+] IP ${ip} redirected"
+                            else
+                                    echo "[!] IP ${ip} already in the list"
+                            fi
+                    fi
+            else
+                    echo "[!] Blocker is not running"
+        fi
+    }
+
+    blockS() {
+            if [ -f ${LOCK} ]
+            then
+                    if [ $# -eq 0 ]
+                    then
+                            echo "[!] You must enter an IP Address"
+                    else
+                            ip=$2
+                            exists=false
+                            for i in `cat $BANNED_IPS`; do
+                                    if [ $i = $ip ]
+                                    then
+                                            exists=true
+                                    fi
+                            done
+
+                            if [ $exists = false ]
+                            then
+                                    echo $ip >> $BANNED_IPS
+                                    iptables -I INPUT -s $ip -j DROP
+                                    iptables -I OUTPUT -s $ip -j DROP
+                                    echo "[+] IP ${ip} blocked"
+                            else
+                                    echo "[!] IP ${ip} already in the list"
+                            fi
+                    fi
+            else
+                    echo "[!] Blocker is not running"
+        fi
+    }
+
+    restartS() {
+        stopS
+        startS
+    }
+
+    showH() {
+        echo "Usage: [*] Blocker {start|stop|restart}"
+    }
+
+    startS() {
+
+            if [ -f ${LOCK} ]
+            then
+                    echo "[*] Blocker is already running"
+                    exit
+            else
+                    ` > ${LOCK}`
+
+                    for i in `cat $BANNED_IPS`; do
+                            iptables -I INPUT -s $i -j DROP
+                            iptables -I OUTPUT -s $i -j DROP
+                    done
+
+                    echo "[+] Blocker started"
+            fi
+
+    }
+
+    stopS() {
+            if [ -f ${LOCK} ]
+            then
+                    for i in `cat $BANNED_IPS`; do
+                            iptables -D INPUT -s $i -j DROP
+                            iptables -D OUTPUT -s $i -j DROP
+                    done
+                    rm ${LOCK}
+
+                    echo "[+] Blocker stopped"
+            else
+                    echo "[!] Blocker is not running"
+            fi
+    }
+
+    unblockS() {
+            if [ -f ${LOCK} ]
+            then
+                    if [ $# -eq 0 ]
+                    then
+                            echo "[!] You must enter an ip address"
+                    else
+                            ip=$2
+                            exists=false
+
+                            for i in `cat $BANNED_IPS`; do
+                                    if [ $i = $ip ]
+                                    then
+                                            exists=true
+                                    else
+                                            echo $i >> $TEMP
+                                    fi
+                            done
+
+                            if [ $exists = false ]
+                            then
+                                    echo "[!] IP ${ip} doesn't in the list"
+                            else
+                                    cp $TEMP $BANNED_IPS && rm $TEMP
+                                    iptables -D INPUT -s $ip -j DROP
+                                    iptables -D OUTPUT -s $ip -j DROP
+                                    echo "[+] IP ${ip} unblocked"
+                            fi
+                    fi
+            else
+                    echo "[!] Blocker is not running"
+            fi
+    }
+
+    case "$1" in
+        block)
+            blockS $2
+            exit
+            ;;
+        restart)
+            restartS $2
+            exit
+            ;;
+        start)
+            startS
+            exit
+            ;;
+        stop)
+            stopS
+            exit
+            ;;
+        unblock)
+          unblockS $2
+            exit
+            ;;
+        redirect)
+                             echo "$2" >> $BANNED_IPS
+                             iptables -t nat -I PREROUTING -s $2 -p tcp --dport 80 -j REDIRECT --to-ports 8089 
+                             iptables -t nat -I OUTPUT -s $2 -p tcp -o lo --dport 80 -j REDIRECT --to-ports 8089
+                             sh ../mailer/mailer.sh
+                             echo "IP Address $2 redirected to the honeypot"
+                             echo "Advertising mail sent"
+            exit
+            ;;
+        redir2attackers)
+                             echo "$2" >> $BANNED_IPS
+                             iptables -t nat -I PREROUTING -s $2 -p tcp --dport 80 -j REDIRECT --to-destination $2
+                             iptables -t nat -I OUTPUT -s $2 -p tcp -o lo --dport 80 -j REDIRECT --to-destination $2
+                             sh ../mailer/mailer.sh
+                             echo "IP Address $2 Mirrored"
+                             echo "Advertising mail sent"
+            exit
+            ;;
+        *)
+            showH
+            exit
+            ;;
+    esac

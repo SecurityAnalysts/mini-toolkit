@@ -451,5 +451,15 @@ def main():
               exit()
 
 if __name__ == "__main__":
-    start()
-    main()
+  try:
+      try:
+         start()
+         main()
+      except EOFError:
+          print("\nCtrl + D")
+          print("\nExiting...")
+          sys.exit()
+  except KeyboardInterrupt:
+      print("\nCtrl + C")
+      print("\nExiting...")
+      sys.exit()
